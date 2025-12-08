@@ -26,7 +26,7 @@ Retrieval → Users can fetch documents and their analysis results via REST endp
 
 
 ## GET STARTED:
-git clone: <https:github.com/benjamin2orie/document-analyser.git>
+git clone: <https://github.com/benjamin2orie/Ai-document-summarization.git>
 cd document-analyser
 npm install
 npm run start:dev

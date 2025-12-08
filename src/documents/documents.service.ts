@@ -1,4 +1,5 @@
 
+
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -25,11 +26,20 @@ export class DocumentsService {
       fileName: file.originalname,
       storagePath: s3Path,
       rawText: text,
+      fileSize: file.size,
+      analysisStatus: 'pending', // new field
     });
 
     await this.documentsRepository.save(doc);
 
-    return { id: doc.id };
+    return { 
+      id: doc.id,
+      fileName: doc.fileName,
+      storagePath: doc.storagePath,
+      fileSize: file.size,
+      documentType: doc.documentType,
+      analysisStatus: doc.analysisStatus, // return status
+    };
   }
 
   async analyze(id: string) {
@@ -38,15 +48,34 @@ export class DocumentsService {
       throw new Error(`Document with id ${id} not found`);
     }
 
-    const analysis = await this.analysisService.analyze(doc.rawText);
-
-    doc.summary = analysis.summary;
-    doc.documentType = analysis.type;
-    doc.metadata = analysis.metadata;
-
+    // mark as processing immediately
+    doc.analysisStatus = 'processing';
     await this.documentsRepository.save(doc);
 
-    return analysis;
+    // Run analysis asynchronously (non-blocking)
+    this.runAnalysisInBackground(doc);
+
+    // return status immediately
+    return {
+      id: doc.id,
+      analysisStatus: doc.analysisStatus,
+      message: 'Analysis started, check status later',
+    };
+  }
+
+  private async runAnalysisInBackground(doc: DocumentEntity) {
+    try {
+      const analysis = await this.analysisService.analyze(doc.rawText);
+
+      doc.summary = analysis.summary;
+      doc.documentType = analysis.type;
+      doc.metadata = analysis.metadata;
+      doc.analysisStatus = 'completed';
+    } catch (err) {
+      doc.analysisStatus = 'failed';
+    }
+
+    await this.documentsRepository.save(doc);
   }
 
   async getDocument(id: string) {

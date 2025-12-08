@@ -23,4 +23,10 @@ export class DocumentEntity {
 
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, any>;
+
+  @Column({ type: 'bigint', nullable: true })
+  fileSize: number;
+
+  @Column({ default: 'pending' })
+  analysisStatus: 'pending' | 'processing' | 'completed' | 'failed';
 }
